@@ -70,6 +70,6 @@ By utilizing our **60-80-60 stratified split**, we track performance across tier
 * **Hard Pass Rate:** Tests complex optimization and high-level reasoning.
 
 
-  #Gdrive id for dataset and Model weights: 
+  # Gdrive id for dataset and Model weights: 
   * To gain access: https://drive.google.com/drive/folders/1UcsTRmEJnTe0ogOkDZh0Oxj1DH5JyxYs?usp=drive_link
   * To download: https://drive.google.com/drive/folders/1UcsTRmEJnTe0ogOkDZh0Oxj1DH5JyxYs
