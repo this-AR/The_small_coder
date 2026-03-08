@@ -42,7 +42,7 @@
 
     \begin{abstract}
         This report presents Milestone 2 (M2) of \textit{The Small Coder}, a continuation of the M1 data preparation and EDA phase, now covering model fitting results for our multi-stage fine-tuning pipeline applied to
-        \textit{DeepSeek-R1-Distill-Qwen-1.5B} for competitive programming (CP) problem solving. Our Train-Validate-Test pipeline uses 12,000 samples from the rStar-Coder dataset (Stage 1) and 2,000 teacher-distilled ``High-Density Logical Blueprints'' generated via Gemma 3 27B (Stage 2). Evaluation against hidden test cases in a Python sandbox on 200 problems reveals a jump from 0\% to 8.0\% Pass@1, alongside significant gains in reasoning density (Think Density: $<$1\% $\rightarrow$ $\sim$56\%) and stable format adherence (94\%). Failure analysis on 184 failed cases shows 69\% Wrong Answer (WA), 25\% Runtime Error (RE), 3.3\% Time Limit Exceeded (TLE), and 2.7\% format failures — confirming the model now generates runnable code and requires targeted logical refinement. The project repository is available at \url{https://github.com/Venkatesh-Shukla/The_small_coder}.
+        \textit{DeepSeek-R1-Distill-Qwen-1.5B} for competitive programming (CP) problem solving. We fine-tune on 12,000 samples from the rStar-Coder dataset (Stage 1) and an additional 2,000 teacher-distilled ``High-Density Logical Blueprints'' generated via Gemma 3 27B (Stage 2). Evaluation against hidden test cases in a Python sandbox on 200 problems reveals a jump from 0\% to 8.0\% Pass@1, alongside significant gains in reasoning density (Think Density: $<$1\% $\rightarrow$ $\sim$56\%) and stable format adherence (94\%). Failure analysis on 184 failed cases shows 69\% Wrong Answer (WA), 25\% Runtime Error (RE), 3.3\% Time Limit Exceeded (TLE), and 2.7\% format failures, confirming the model now generates runnable code and requires targeted logical refinement. The project repository is available at \url{https://github.com/Venkatesh-Shukla/The_small_coder}.
     \end{abstract}
 \end{frontmatter}
 
@@ -64,67 +64,49 @@ Building on the dataset preparation and EDA from M1, this milestone focuses on m
 \end{figure}
 
 %%-----------------------------------------------------------
-\section{Dataset \& Train-Validate-Test Split}
+\section{Dataset \& Training Configuration}
 \label{sec:data}
 %%-----------------------------------------------------------
 
 \subsection{Data Sources}
 
 \begin{itemize}
-    \item \textbf{rStar-Coder Dataset (Stage 1):} 12,000 competitive programming samples covering problem statements, reasoning traces, and solution code. Stratified as 30\% Easy, 40\% Medium, 30\% Hard.
+    \item \textbf{rStar-Coder Dataset (Stage 1):} 12,000 competitive programming samples covering problem statements, reasoning traces, and solution code, sorted by token length for curriculum learning.
     \item \textbf{Gemma-Distilled Blueprints (Stage 2):} 2,000 ``High-Density Logical Blueprint'' samples synthesized using Gemma 3 27B as a teacher model across 10 parallel distributed notebooks. These traces are concise, pivot-focused, and designed to mitigate the \textit{Yapping Phenomenon} (see Section~\ref{sec:yapping}).
-    \item \textbf{Hidden Test Suite:} 200 problems curated for evaluation 60 Easy, 80 Medium, 60 Hard with functional test cases not exposed during training.
+    \item \textbf{Hidden Test Suite:} 200 problems curated for evaluation (60 Easy, 80 Medium, 60 Hard) with functional test cases not exposed during training.
 \end{itemize}
 
-\subsection{Train-Validate-Test Split}
+\subsection{Training Data Usage}
 
-All data was split at the problem level to prevent data leakage. Table~\ref{tab:split} summarizes the split ratios applied per stage.
-
-\begin{table}[H]
-    \centering
-    \caption{Train-Validate-Test Split Configuration}
-    \label{tab:split}
-    \begin{tabular}{lccccc}
-        \toprule
-        \textbf{Stage} & \textbf{Dataset} & \textbf{Total} & \textbf{Train} & \textbf{Validate} & \textbf{Test} \\
-        \midrule
-        Stage 1        & rStar-Coder      & 12,000         & 9,600 (80\%)   & 1,200 (10\%)      & 1,200 (10\%)  \\
-        Stage 2        & Gemma Distilled  & 2,000          & 1,600 (80\%)   & 200 (10\%)        & 200 (10\%)    \\
-        Final Eval     & Hidden Sandbox   & 200            & ---            & ---               & 200 (100\%)   \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-\textbf{Split Strategy:} Problems were stratified by difficulty tier (estimated by token length) before splitting, ensuring each partition contains a representative distribution of Easy, Medium, and Hard problems.
+All 12,000 rStar-Coder samples were used for Stage 1 training (no held-out validation split), using curriculum learning sorted by problem token length. Likewise, all 2,000 Gemma-distilled blueprints were used for Stage 2 training. Functional evaluation was performed exclusively on the fully-held-out 200-problem hidden test suite, which was never exposed during any training stage, preventing any data leakage.
 
 %%-----------------------------------------------------------
 \section{Methodology}
 \label{sec:method}
 %%-----------------------------------------------------------
 
-Our pipeline is a multi-stage fine-tuning architecture — not a standard Supervised Fine-Tuning (SFT) attempt — designed to \textit{internalize} structured reasoning in a 1.5B model.
+Our pipeline is a multi-stage fine-tuning architecture, not a standard Supervised Fine-Tuning (SFT) attempt, designed to \textit{internalize} structured reasoning in a 1.5B model.
 
 \subsection{Base Model}
 
 We use \texttt{DeepSeek-R1-Distill-Qwen-1.5B} as our foundation. This model was selected because:
 \begin{itemize}
     \item It fits on consumer-grade hardware (single GPU or CPU with quantization).
-    \item Its distilled initialization provides a stronger reasoning prior than a vanilla 1.5B model.
     \item It supports structured XML output format (\texttt{<think>...<\/think>} / \texttt{<answer>...<\/answer>}).
 \end{itemize}
 
 \subsection{Stage 1: Curriculum Learning on rStar-Coder}
 
-We began by building ``muscle memory'' using 9,600 training samples from the rStar-Coder dataset. Problems were sorted by ascending token length, operationalizing curriculum learning~\cite{bengio2009curriculum}: the model first stabilizes its understanding of syntax and output format before encountering complex algorithmic logic.
+We began by building ``muscle memory'' using all 12,000 training samples from the rStar-Coder dataset. Problems were sorted by ascending token length, operationalizing curriculum learning~\cite{bengio2009curriculum}: the model first stabilizes its understanding of syntax and output format before encountering complex algorithmic logic.
 
-\textbf{Hyperparameters:} LoRA rank 16, learning rate 2e-4, batch size 8 (2 per device $\times$ 4 gradient accumulation), 2 epochs, $\sim$2,250 total steps. Total trainable parameters: 18.46M of 1.795B (1.03\%).
+\textbf{Hyperparameters:} LoRA rank 16, \texttt{lora\_alpha} 16, learning rate 2e-4, batch size 8 (2 per device $\times$ 4 gradient accumulation steps), $\sim$2,250 training steps ($\sim$1.5 epochs).
 
 \subsection{Stage 2: Teacher-Student Logic Distillation}
 \label{sec:yapping}
 
-\textbf{The Yapping Phenomenon.} A post-Stage-1 audit revealed a critical failure mode: while the model achieved near-perfect format adherence (98\%), functional test pass rates remained at $<$1\%. Analysis showed that the rStar-Coder reasoning traces — distilled from 67B+ models — were ``yappy'': overly circular and rambling. A 67B model has sufficient parametric capacity to maintain its logical thread across such traces; the 1.5B model suffered \textit{Cognitive Overload}, losing track of the solution mid-reasoning.
+\textbf{The Yapping Phenomenon.} A post-Stage-1 audit revealed a critical failure mode: while the model achieved near-perfect format adherence (98\%), functional test pass rates remained at $<$1\%. Analysis showed that the rStar-Coder reasoning traces (distilled from 67B+ models) were ``yappy'': overly circular and rambling. A 67B model has sufficient parametric capacity to maintain its logical thread across such traces; the 1.5B model suffered \textit{Cognitive Overload}, losing track of the solution mid-reasoning.
 
-\textbf{Solution.} We employed a Teacher-Student architecture, using Gemma 3 27B as an Expert Coach. Via distributed synthesis across 10 parallel notebooks, we generated 2,000 ``High-Density Logical Blueprints'' — concise traces that explicitly identify \textit{pivots} (key algorithmic decisions) and \textit{win conditions} (termination criteria), stripping all redundant prose.
+\textbf{Solution.} We employed a Teacher-Student architecture, using Gemma 3 27B as an Expert Coach. Via distributed synthesis across 10 parallel notebooks, we generated 2,000 ``High-Density Logical Blueprints'': concise traces that explicitly identify \textit{pivots} (key algorithmic decisions) and \textit{win conditions} (termination criteria), stripping all redundant prose.
 
 \subsection{Model Variants Evaluated}
 
@@ -222,24 +204,24 @@ Table~\ref{tab:difficulty} and Figure~\ref{fig:difficulty} show that Stage 2 per
 Figure~\ref{fig:failure_heatmap} presents the failure category breakdown for the Stage 2 model across its 184 failed cases (out of 200 test problems; 16 passed).
 
 \begin{itemize}
-    \item \textbf{Wrong Answer (WA):} 127 cases (69.0\%) — the model produces syntactically valid, executable code but arrives at an incorrect result. Indicates the model is now \textit{implementable} but needs logical edge-case refinement.
-    \item \textbf{Runtime Error (RE):} 46 cases (25.0\%) — minor syntactic issues or unhandled exceptions (e.g., recursion depth exceeded, as observed in case study).
-    \item \textbf{Time Limit Exceeded (TLE):} 6 cases (3.3\%) — correct logic but suboptimal time complexity.
-    \item \textbf{No Code:} 5 cases (2.7\%) — model output contained no valid code block.
+    \item \textbf{Wrong Answer (WA):} 127 cases (69.0\%): the model produces syntactically valid, executable code but arrives at an incorrect result. Indicates the model is now \textit{implementable} but needs logical edge-case refinement.
+    \item \textbf{Runtime Error (RE):} 46 cases (25.0\%): minor syntactic issues or unhandled exceptions (e.g., recursion depth exceeded, as observed in case study).
+    \item \textbf{Time Limit Exceeded (TLE):} 6 cases (3.3\%): correct logic but suboptimal time complexity.
+    \item \textbf{No Code:} 5 cases (2.7\%): model output contained no valid code block.
 \end{itemize}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{failure_heatmap.png}
-    \caption{Failure mode distribution for Stage 2 model on 184 failed cases. Left: donut chart showing proportional breakdown. Right: horizontal bar chart with absolute counts. Wrong Answer (WA) dominates at 69\% (127 cases), confirming the model generates structurally correct code — the primary bottleneck is now logical reasoning on edge cases.}
+    \caption{Failure mode distribution for Stage 2 model on 184 failed cases. Left: donut chart showing proportional breakdown. Right: horizontal bar chart with absolute counts. Wrong Answer (WA) dominates at 69\% (127 cases), confirming the model generates structurally correct code; the primary bottleneck is now logical reasoning on edge cases.}
     \label{fig:failure_heatmap}
 \end{figure}
 
 \subsection{Interpretation}
 
-\textbf{Stage 1 $\rightarrow$ Stage 2 transition is the critical breakthrough.} Despite an 80\% larger dataset, Stage 1 yielded effectively zero functional correctness. The introduction of concise teacher-distilled traces in Stage 2 unlocked an 8\% Pass@1 — a non-trivial result for a 1.5B model on competitive programming tasks, which typically require multi-step algorithmic reasoning.
+\textbf{Stage 1 $\rightarrow$ Stage 2 transition is the critical breakthrough.} Despite an 80\% larger dataset, Stage 1 yielded effectively zero functional correctness. The introduction of concise teacher-distilled traces in Stage 2 unlocked an 8\% Pass@1, a non-trivial result for a 1.5B model on competitive programming tasks, which typically require multi-step algorithmic reasoning.
 
-\textbf{Think Density as a leading indicator.} The jump from $<$5\% (Stage 1) to $\sim$56\% (Stage 2) in Think Density precedes the functional improvement, suggesting that reasoning quality — not just output format — is a predictor of downstream correctness.
+\textbf{Think Density as a leading indicator.} The jump from $<$5\% (Stage 1) to $\sim$56\% (Stage 2) in Think Density precedes the functional improvement, suggesting that reasoning quality (not just output format) is a predictor of downstream correctness.
 
 \textbf{Format Adherence trade-off.} A slight drop from 98\% (Stage 1) to 94\% (Stage 2) is observed. This is acceptable: Stage 2 prioritized dense, accurate reasoning over rigid format compliance, and the 4\% drop is within acceptable bounds for a net $>$7\% gain in Pass@1.
 
@@ -253,7 +235,7 @@ Figure~\ref{fig:failure_heatmap} presents the failure category breakdown for the
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{learning_curves.png}
-    \caption{Training and validation loss curves for Stage 1 (rStar-Coder curriculum, 2,250 steps) and Stage 2 (Gemma-distilled blueprints). Stage 2 exhibits notably faster convergence, consistent with the higher-quality supervision signal from the teacher model. Stage 1 hyperparameters: LoRA rank 16, lr=2e-4, batch=8, 2 epochs, 2,250 steps, 18.46M trainable parameters.}
+    \caption{Training loss curves for Stage 1 (rStar-Coder curriculum, $\sim$2,250 steps) and Stage 2 (Gemma-distilled blueprints). Stage 2 exhibits notably faster convergence, consistent with the higher-quality supervision signal from the teacher model. Stage 1: LoRA rank 16, lr=2e-4, batch size 8 (2 per device $\times$ 4 accumulation), $\sim$1.5 epochs. Stage 2: LoRA rank 16, lr=1e-4, batch size 16 (4 per device $\times$ 4 accumulation), 1.5 epochs.}
     \label{fig:learning_curves}
 \end{figure}
 
@@ -276,15 +258,13 @@ Table~\ref{tab:qualitative} contrasts a Stage 1 (yappy) trace with a Stage 2 (bl
     \label{tab:qualitative}
     \begin{tabular}{p{0.12\linewidth} p{0.38\linewidth} p{0.38\linewidth}}
         \toprule
-                               & \textbf{Stage 1 (Yappy Trace)}                                                           & \textbf{Stage 2 (Blueprint Trace)}                                                            \\
+                           & \textbf{Stage 1 (Yappy Trace)}                                                           & \textbf{Stage 2 (Blueprint Trace)}                                                            \\
         \midrule
-        \textbf{Style}         & Rambling, circular, re-states problem multiple times before arriving at (wrong) approach & Immediately identifies pivot: key constraint, algorithm choice, complexity bound              \\
+        \textbf{Style}     & Rambling, circular, re-states problem multiple times before arriving at (wrong) approach & Immediately identifies pivot: key constraint, algorithm choice, complexity bound              \\
         \midrule
-        \textbf{Structure}     & Free prose; no explicit goal or pseudocode anchors                                       & Structured: \texttt{[GOAL]}, \texttt{[LOGIC]}, \texttt{[PSEUDOCODE]}, \texttt{[CORNER CASES]} \\
+        \textbf{Structure} & Free prose; no explicit goal or pseudocode anchors                                       & Structured: \texttt{[GOAL]}, \texttt{[LOGIC]}, \texttt{[PSEUDOCODE]}, \texttt{[CORNER CASES]} \\
         \midrule
-        \textbf{Outcome}       & Syntactically valid but logically incorrect; fails all hidden test cases                 & Logically structured; passes majority of hidden test cases                                    \\
-        \midrule
-        \textbf{Think Density} & $\sim$3\%                                                                                & $\sim$61\%                                                                                    \\
+        \textbf{Outcome}   & Syntactically valid but logically incorrect; fails all hidden test cases                 & Logically structured; passes majority of hidden test cases                                    \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -305,18 +285,19 @@ Table~\ref{tab:qualitative} contrasts a Stage 1 (yappy) trace with a Stage 2 (bl
 
 Our next phases move from ``Alpha-Reasoning'' to a full Agentic Coding Architecture:
 
-\textbf{Stage 4 — Error-Corrective Fine-Tuning (Gold Standard):} A proprietary dataset of 1,300 Gold Standard questions. The model is run on these, failures are identified, and the model is retrained with explicit mistake-correction pairs — ``patching'' logical loopholes. The identified 69\% WA rate directly guides dataset curation for this stage.
+\textbf{Stage 4: Error-Corrective Fine-Tuning (Gold Standard):} A proprietary dataset of 1,300 Gold Standard questions. The model is run on these, failures are identified, and the model is retrained with explicit mistake-correction pairs, ``patching'' logical loopholes. The identified 69\% WA rate directly guides dataset curation for this stage.
 
-\textbf{Stage 5 — RAG Integration (External Library):} Retrieval-Augmented Generation over a database of human-verified algorithm templates (Segment Trees, DSU, FFT). RAG provides the ``syntax skeleton,'' freeing the model's 1.5B parameters to focus on problem-specific logic. The 25\% RE rate (unhandled exceptions, recursion errors) motivates this component.
+\textbf{Stage 5: RAG Integration (External Library)} 
+Retrieval Augmented Generation over a database of human-verified algorithm templates (Segment Trees, DSU, FFT). RAG provides the ``syntax skeleton,'' freeing the model's 1.5B parameters to focus on problem-specific logic. The 25\% RE rate (unhandled exceptions, recursion errors) motivates this component.
 
-\textbf{Stage 6 — Live Sandbox Feedback Loop:} The model generates a draft solution, executes it in a sandbox, reads the error trace, and re-reasons in real-time — mimicking the human competitive programming workflow.
+\textbf{Stage 6: Live Sandbox Feedback Loop:} The model generates a draft solution, executes it in a sandbox, reads the error trace, and re-reasons in real-time, mimicking the human competitive programming workflow.
 
 %%-----------------------------------------------------------
 \section{Conclusion}
 \label{sec:conclusion}
 %%-----------------------------------------------------------
 
-This project demonstrates that sophisticated data engineering and multi-stage refinement can transform a 1.5B SLM into a functional specialized reasoning tool. Through curriculum learning and teacher-student logic distillation, we moved from a 0\% functional baseline to an 8\% Pass@1, with Think Density improving from $<$1\% to $\sim$56\%. The dominant failure mode (WA at 69\%, 127/184 failures) confirms the model now generates correct-format, executable code — the bottleneck has shifted from \textit{format} to \textit{logical reasoning}, which our upcoming milestones specifically target. The consistent performance across difficulty tiers (Easy: 8.3\%, Medium: 7.5\%, Hard: 8.3\%) confirms generalized reasoning internalization rather than difficulty-specific memorization.
+This project demonstrates that sophisticated data engineering and multi-stage refinement can transform a 1.5B SLM into a functional specialized reasoning tool. Through curriculum learning and teacher-student logic distillation, we moved from a 0\% functional baseline to an 8\% Pass@1, with Think Density improving from $<$1\% to $\sim$56\%. The dominant failure mode (WA at 69\%, 127/184 failures) confirms the model now generates correct-format, executable code; the bottleneck has shifted from \textit{format} to \textit{logical reasoning}, which our upcoming milestones specifically target. The consistent performance across difficulty tiers (Easy: 8.3\%, Medium: 7.5\%, Hard: 8.3\%) confirms generalized reasoning internalization rather than difficulty-specific memorization.
 
 %%-----------------------------------------------------------
 \section*{Acknowledgements}
@@ -327,23 +308,23 @@ We acknowledge the open-source contributions of the DeepSeek, rStar-Coder, and G
 %%-----------------------------------------------------------
 % Bibliography
 %%-----------------------------------------------------------
-\begin{thebibliography}{9}
+% \begin{thebibliography}{9}
 
-    \bibitem{hinton2015distilling}
-    G. Hinton, O. Vinyals, J. Dean,
-    \textit{Distilling the Knowledge in a Neural Network},
-    arXiv:1503.02531, 2015.
+%     \bibitem{hinton2015distilling}
+%     G. Hinton, O. Vinyals, J. Dean,
+%     \textit{Distilling the Knowledge in a Neural Network},
+%     arXiv:1503.02531, 2015.
 
-    \bibitem{bengio2009curriculum}
-    Y. Bengio, J. Louradour, R. Collobert, J. Weston,
-    \textit{Curriculum Learning},
-    Proc. ICML, 2009.
+%     \bibitem{bengio2009curriculum}
+%     Y. Bengio, J. Louradour, R. Collobert, J. Weston,
+%     \textit{Curriculum Learning},
+%     Proc. ICML, 2009.
 
-    \bibitem{deepseek2024r1}
-    DeepSeek-AI,
-    \textit{DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning},
-    arXiv:2501.12948, 2025.
+%     \bibitem{deepseek2024r1}
+%     DeepSeek-AI,
+%     \textit{DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning},
+%     arXiv:2501.12948, 2025.
 
-\end{thebibliography}
+% \end{thebibliography}
 
 \end{document}
