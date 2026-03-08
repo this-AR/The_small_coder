@@ -1,6 +1,6 @@
 %% Elsevier article template (elsarticle)
-%% M2: Model Fitting Milestone Report
-%% The Small Coder: Democratizing Competitive Programming via SLM Fine-Tuning
+%% M2: Model Fitting Milestone Report (Continuation of M1)
+%% The Small Coder: Specializing a 1.5B SLM for Competitive Programming via Multi-Stage Fine-Tuning
 
 \documentclass[preprint,12pt]{elsarticle}
 
@@ -31,20 +31,19 @@
 
 \begin{frontmatter}
 
-    \title{The Small Coder: Democratizing Competitive Programming Reasoning via Multi-Stage Fine-Tuning of a 1.5B Parameter Small Language Model}
+    \title{The Small Coder: Specializing a 1.5B SLM for Competitive Programming via Multi-Stage Fine-Tuning}
 
-    \author[inst1]{Venkatesh Shukla}
+    \author[inst1]{Satyam Kumar Chauhan (123108031)}
+    \author[inst1]{Venkatesh Shukla (123108030)}
+    \author[inst1]{Jayant Gautam (123108039)}
+    \author[inst1]{Aditya Rai (123108034)}
 
     \address[inst1]{NIT Kurukshetra, Computer Science and Engineering}
 
     \begin{abstract}
-        This report presents Milestone 2 (M2) results for \textit{The Small Coder} project — a multi-stage fine-tuning pipeline applied to DeepSeek-R1-Distill-Qwen-1.5B targeting competitive programming (CP) problem solving. Standard large-scale reasoning models require enterprise-grade hardware, making them inaccessible for edge deployment. We investigate whether a 1.5B Small Language Model (SLM), through strategic curriculum learning, teacher-student logic distillation, and structured evaluation, can achieve meaningful functional correctness on CP benchmarks. Our Train-Validate-Test pipeline uses 12,000 samples from the rStar-Coder dataset (Stage 1) and 2,000 teacher-distilled ``High-Density Logical Blueprints'' generated via Gemma 3 27B (Stage 2). Evaluation against hidden test cases in a Python sandbox on 200 problems reveals a jump from 0\% to 8.0\% Pass@1, alongside significant gains in reasoning density (Think Density: $<$1\% $\rightarrow$ $\sim$56\%) and stable format adherence (94\%). Failure analysis on 184 failed cases shows 69\% Wrong Answer (WA), 25\% Runtime Error (RE), 3.3\% Time Limit Exceeded (TLE), and 2.7\% format failures — confirming the model now generates runnable code and requires targeted logical refinement. The project repository is available at \url{https://github.com/Venkatesh-Shukla/The_small_coder}.
+        This report presents Milestone 2 (M2) of \textit{The Small Coder}, a continuation of the M1 data preparation and EDA phase, now covering model fitting results for our multi-stage fine-tuning pipeline applied to
+        \textit{DeepSeek-R1-Distill-Qwen-1.5B} for competitive programming (CP) problem solving. Our Train-Validate-Test pipeline uses 12,000 samples from the rStar-Coder dataset (Stage 1) and 2,000 teacher-distilled ``High-Density Logical Blueprints'' generated via Gemma 3 27B (Stage 2). Evaluation against hidden test cases in a Python sandbox on 200 problems reveals a jump from 0\% to 8.0\% Pass@1, alongside significant gains in reasoning density (Think Density: $<$1\% $\rightarrow$ $\sim$56\%) and stable format adherence (94\%). Failure analysis on 184 failed cases shows 69\% Wrong Answer (WA), 25\% Runtime Error (RE), 3.3\% Time Limit Exceeded (TLE), and 2.7\% format failures — confirming the model now generates runnable code and requires targeted logical refinement. The project repository is available at \url{https://github.com/Venkatesh-Shukla/The_small_coder}.
     \end{abstract}
-
-    \begin{keyword}
-        Small Language Models \sep Competitive Programming \sep Fine-Tuning \sep Curriculum Learning \sep Knowledge Distillation \sep Reasoning \sep Pass@1
-    \end{keyword}
-
 \end{frontmatter}
 
 
@@ -53,14 +52,9 @@
 \label{sec:intro}
 %%-----------------------------------------------------------
 
-The current landscape of Generative AI is dominated by Large Language Models (LLMs) with hundreds of billions of parameters. While highly capable, such models present two significant barriers to widespread adoption:
+Building on the dataset preparation and EDA from M1, this milestone focuses on model fitting.
 
-\begin{enumerate}[label=(\roman*)]
-    \item \textbf{Hardware Accessibility:} Models of 70B+ parameters require enterprise-grade A100/H100 GPUs, precluding local PC deployment or privacy-focused edge computing.
-    \item \textbf{Compute Constraints:} Training a reasoning model from scratch is computationally prohibitive for individual researchers.
-\end{enumerate}
-
-\textit{The Small Coder} directly addresses these barriers. Our objective is to democratize high-level reasoning by fine-tuning \texttt{DeepSeek-R1-Distill-Qwen-1.5B} — a model runnable on a standard consumer PC — to achieve competitive-programming-level logical reasoning. Figure~\ref{fig:pipeline} illustrates the end-to-end multi-stage pipeline.
+\textit{The Small Coder} aims to fine-tune \texttt{DeepSeek-R1-Distill-Qwen-1.5B} a model runnable on consumer-grade hardware to solve competitive programming (CP) problems. Figure~\ref{fig:pipeline} illustrates the end-to-end multi-stage pipeline.
 
 \begin{figure}[H]
     \centering
@@ -68,19 +62,6 @@ The current landscape of Generative AI is dominated by Large Language Models (LL
     \caption{End-to-end multi-stage fine-tuning pipeline for \textit{The Small Coder}. Starting from the base 1.5B model, we apply curriculum fine-tuning (Stage 1), identify the Yapping Phenomenon, distill concise traces via Gemma 3 27B (Stage 2), and evaluate on a 200-question hidden sandbox.}
     \label{fig:pipeline}
 \end{figure}
-
-This M2 report documents our model fitting approach, train-validate-test split methodology, evaluation metrics, and interpretability of results.
-
-%%-----------------------------------------------------------
-\section{Related Work}
-\label{sec:related}
-%%-----------------------------------------------------------
-
-\textbf{Knowledge Distillation.} Hinton et al.~\cite{hinton2015distilling} established the teacher-student paradigm for transferring knowledge from large models to smaller ones. Our Stage 2 pipeline operationalizes this by using Gemma 3 27B as a teacher to generate concise reasoning traces for the 1.5B student.
-
-\textbf{Curriculum Learning.} Bengio et al.~\cite{bengio2009curriculum} demonstrated that presenting training samples in order of increasing complexity improves model convergence. We apply this by sorting problems by token length during Stage 1 fine-tuning.
-
-\textbf{Reasoning in SLMs.} DeepSeek-R1~\cite{deepseek2024r1} showed that distilled smaller models can exhibit non-trivial reasoning. We extend this line of research to the domain of competitive programming, where functional correctness is the primary metric.
 
 %%-----------------------------------------------------------
 \section{Dataset \& Train-Validate-Test Split}
@@ -90,9 +71,9 @@ This M2 report documents our model fitting approach, train-validate-test split m
 \subsection{Data Sources}
 
 \begin{itemize}
-    \item \textbf{rStar-Coder Dataset (Stage 1):} 12,000 competitive programming samples covering problem statements, reasoning traces, and solution code, sourced from the rStar-Coder benchmark~\cite{rstar2024}. Stratified as 30\% Easy, 40\% Medium, 30\% Hard.
+    \item \textbf{rStar-Coder Dataset (Stage 1):} 12,000 competitive programming samples covering problem statements, reasoning traces, and solution code. Stratified as 30\% Easy, 40\% Medium, 30\% Hard.
     \item \textbf{Gemma-Distilled Blueprints (Stage 2):} 2,000 ``High-Density Logical Blueprint'' samples synthesized using Gemma 3 27B as a teacher model across 10 parallel distributed notebooks. These traces are concise, pivot-focused, and designed to mitigate the \textit{Yapping Phenomenon} (see Section~\ref{sec:yapping}).
-    \item \textbf{Hidden Test Suite:} 200 problems curated for evaluation — 60 Easy, 80 Medium, 60 Hard — with functional test cases not exposed during training.
+    \item \textbf{Hidden Test Suite:} 200 problems curated for evaluation 60 Easy, 80 Medium, 60 Hard with functional test cases not exposed during training.
 \end{itemize}
 
 \subsection{Train-Validate-Test Split}
@@ -362,11 +343,6 @@ We acknowledge the open-source contributions of the DeepSeek, rStar-Coder, and G
     DeepSeek-AI,
     \textit{DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning},
     arXiv:2501.12948, 2025.
-
-    \bibitem{rstar2024}
-    X. Qi et al.,
-    \textit{rStar-Math: Small LLMs Can Master Math Reasoning with Self-Evolved Deep Thinking},
-    arXiv:2501.04519, 2025.
 
 \end{thebibliography}
 
