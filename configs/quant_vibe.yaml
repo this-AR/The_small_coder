@@ -1,0 +1,21 @@
+# Track C: same problems, three output formats, one precision per run ({TAG} filled by serve_and_eval.sh).
+#   long      = normal thinking at 8K
+#   truncated = thinking cut to roughly the sketch's mean length (set after the sketch run)
+#   sketch    = no-think, short structured algorithm sketch then code (use the team's sketch-trained
+#               checkpoint for this condition if available)
+# Compare precisions with: python scripts/summarize.py results/quant/vibe_*.jsonl
+model:
+  name: vibe-{TAG}
+  path: WeiboAI/VibeThinker-1.5B          # tokenizer only (counting and truncation)
+  backend: openai
+  base_url: http://127.0.0.1:8080
+  extra: {concurrency: 8, strip_prefix: ""}   # set strip_prefix to the template's textual BOS if it has one
+problems: data/eval/lcb_v5_2408_2502.jsonl
+conditions:
+  - {name: long}
+  - {name: sketch, style: sketch}
+budgets: [0, 1024, 8192]      # 0 = sketch/no-think; 1024 ~ truncated; 8192 = long
+answer_tokens: 2048
+sampling: {n: 8, temperature: 0.6, top_p: 0.95, seed: 1234}
+judge: {workers: 32}
+out: results/quant/vibe_{TAG}.jsonl
