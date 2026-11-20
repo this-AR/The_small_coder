@@ -1,0 +1,20 @@
+# Track B: repair vs resample at equal tokens on a test set. `rows` are the Track 0 harness rows
+# for the SAME model and budget (samples 0..n-1 are the resample strategy).
+model:
+  name: vibethinker-1.5b-repair
+  path: models/vibe_repair_rl        # or WeiboAI/VibeThinker-1.5B for the zero-shot repair baseline
+  backend: vllm
+  max_model_len: 12288
+problems: data/eval/lcb_v5_2408_2502.jsonl
+rows: [results/track0/vibethinker_lcb_v5.jsonl]
+condition: base
+budget: 2048                # first attempt and resamples use this thinking budget
+repair_budget: 0            # repair runs in no-think mode (matches the SFT target format)
+answer_tokens: 2048
+rounds: 3
+token_caps: [2000, 4000, 8000, 16000]
+temperature: 0.6
+top_p: 0.95
+seed: 99
+time_multiplier: 1.0
+out: results/repair/vibethinker_lcb_v5.jsonl
