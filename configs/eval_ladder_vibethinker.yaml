@@ -1,0 +1,20 @@
+# Track A1: every rung on the same paired problem subset. Copy for r1distill (change model + out).
+model:
+  name: vibethinker-1.5b
+  path: WeiboAI/VibeThinker-1.5B
+  backend: vllm
+  max_model_len: 16384
+problems: data/ladder/problems.jsonl
+conditions:
+  - {name: none}
+  - {name: pred_tags, contexts: data/ladder/contexts.jsonl, context_key: pred_tags}
+  - {name: oracle_tags, contexts: data/ladder/contexts.jsonl, context_key: oracle_tags}
+  - {name: technique, contexts: data/ladder/contexts.jsonl, context_key: technique}
+  - {name: sketch, contexts: data/ladder/contexts.jsonl, context_key: sketch}
+  - {name: editorial, contexts: data/ladder/contexts.jsonl, context_key: editorial}
+  - {name: editorial_pseudo, contexts: data/ladder/contexts.jsonl, context_key: editorial_pseudo}
+budgets: [4096]
+answer_tokens: 2048
+sampling: {n: 16, temperature: 0.6, top_p: 0.95, seed: 1234}
+judge: {workers: 32, time_multiplier: 2.0}   # Codeforces limits are set for C++
+out: results/ladder/vibethinker.jsonl

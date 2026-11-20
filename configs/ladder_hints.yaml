@@ -1,0 +1,16 @@
+# Teacher that writes technique / sketch / pseudocode hints from editorials (text only, so any tokenizer).
+teacher:
+  name: qwen3-32b
+  path: Qwen/Qwen3-32B
+  backend: vllm
+  tensor_parallel_size: 2
+  max_model_len: 16384
+  think_end: "</think>"
+template_kwargs: {enable_thinking: false}
+problems: [data/eval/cf_test.jsonl]
+n_tries: 3
+max_tokens: 1024
+temperature: 0.3
+seed: 7
+pred_top_k: 2
+out_dir: data/ladder
