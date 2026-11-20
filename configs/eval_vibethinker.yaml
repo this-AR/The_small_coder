@@ -1,0 +1,20 @@
+# Track 0 baseline: VibeThinker-1.5B on the LCB v5 window at every thinking budget.
+# Run scripts/inspect_template.py first and confirm think_start/think_end match the chat template.
+model:
+  name: vibethinker-1.5b
+  path: WeiboAI/VibeThinker-1.5B
+  backend: vllm
+  thinking: true
+  think_start: "<think>"
+  think_end: "</think>"
+  max_model_len: 12288          # 8192 thinking + answer + prompt
+  gpu_memory_utilization: 0.9
+problems: data/eval/lcb_v5_2408_2502.jsonl
+conditions:
+  - name: base
+budgets: [0, 1024, 2048, 4096, 8192]   # thinking-token caps; 0 = no-think
+answer_tokens: 2048
+sampling: {n: 16, temperature: 0.6, top_p: 0.95, seed: 1234}
+judge: {workers: 32, time_multiplier: 1.0, stop_on_fail: true, judge_public: true}
+batch_problems: 64
+out: results/track0/vibethinker_lcb_v5.jsonl

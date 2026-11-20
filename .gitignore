@@ -10,3 +10,13 @@
 *.lof
 *.lot
 raw.txt
+# smallcoder: caches, environments and run outputs (results stay on the cluster)
+__pycache__/
+*.pyc
+.venv/
+/data/
+/results/
+/models/
+/logs/
+/phone_bundle/
+*.gguf

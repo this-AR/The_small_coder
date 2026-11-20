@@ -1,0 +1,18 @@
+# Track 0 control: the team's original base, same harness. Copy this file for the old Stage 1/2/M3
+# checkpoints (change name/path) so every number comes from one protocol.
+model:
+  name: r1distill-1.5b
+  path: deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
+  backend: vllm
+  thinking: true
+  think_start: "<think>"
+  think_end: "</think>"
+  max_model_len: 12288
+problems: data/eval/lcb_v5_2408_2502.jsonl
+conditions:
+  - name: base
+budgets: [0, 1024, 2048, 4096, 8192]
+answer_tokens: 2048
+sampling: {n: 16, temperature: 0.6, top_p: 0.95, seed: 1234}
+judge: {workers: 32, time_multiplier: 1.0}
+out: results/track0/r1distill_lcb_v5.jsonl
