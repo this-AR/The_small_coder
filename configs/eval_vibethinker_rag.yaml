@@ -1,0 +1,16 @@
+# Track A4 on the test set: real retrieval vs a random-document control (same prompts and stopping rules).
+# Together with the Track 0 `base` rows these make the TEST label table for controller_eval.py.
+model:
+  name: vibethinker-1.5b
+  path: WeiboAI/VibeThinker-1.5B
+  backend: vllm
+  max_model_len: 14336
+problems: data/eval/lcb_v5_2408_2502.jsonl
+conditions:
+  - {name: rag, contexts: data/rag/lcb_contexts.jsonl, context_key: rag}
+  - {name: rag_random, contexts: data/rag/lcb_contexts.jsonl, context_key: rag_random}
+budgets: [0, 1024, 2048, 4096, 8192]
+answer_tokens: 2048
+sampling: {n: 16, temperature: 0.6, top_p: 0.95, seed: 1234}
+judge: {workers: 32}
+out: results/track0/vibethinker_lcb_v5_rag.jsonl

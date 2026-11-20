@@ -1,0 +1,18 @@
+# Track A2: controller labels on the TRAIN subset. Every (condition, budget) arm, k=8 samples.
+# Prerequisite: python scripts/rag_retrieve.py configs/eval_vibethinker.yaml data/train/labels_pool.jsonl \
+#                 --index data/rag/index --out data/rag/train_contexts.jsonl
+model:
+  name: vibethinker-1.5b
+  path: WeiboAI/VibeThinker-1.5B
+  backend: vllm
+  max_model_len: 14336
+problems: data/train/labels_pool.jsonl
+conditions:
+  - {name: base}
+  - {name: rag, contexts: data/rag/train_contexts.jsonl, context_key: rag}
+budgets: [0, 1024, 2048, 4096, 8192]
+answer_tokens: 2048
+sampling: {n: 8, temperature: 0.6, top_p: 0.95, seed: 4321}
+judge: {workers: 64, time_multiplier: 2.0, stop_on_fail: true, judge_public: true}
+batch_problems: 128
+out: results/labels/vibethinker_train.jsonl
